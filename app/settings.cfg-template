@@ -1,0 +1,8 @@
+[DEFAULT]
+subject = Your subject here
+to_email = your@email.here
+cache_file = /path/to/cache/file
+
+[AppCredentials]
+email = email.address@for.app
+password = Sup3rS3cretP4ssw0rd
