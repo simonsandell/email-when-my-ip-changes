@@ -4,6 +4,7 @@ import requests
 import smtplib
 import configparser
 import argparse
+from tests import Test
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--config", type=str, dest='config_file')
@@ -11,28 +12,27 @@ args = parser.parse_args()
 if not args.config_file:
     print("No config file specified")
     sys.exit(1)
-
-
 config = configparser.ConfigParser()
 config.read(args.config_file)
 
-r = requests.get("http://ifconfig.me")
-current_ip = r.text
-
-cache_file = config["DEFAULT"]["cache_file"]
-to_email = config["DEFAULT"]["to_email"]
-
-with open(cache_file, 'r') as f:
-    previous_ip = f.read().strip()
-if not previous_ip == current_ip:
+# run tests
+results = []
+for _, test in Test.Tests.items():
+    results.append(test(config))
+should_notify = False
+test_messages = ''
+for result in results:
+    if result.notify:
+        test_messages += result.testdesc + ": " + result.message
+        should_notify = True
     
-    from_email = config["AppCredentials"]["email"]
-    from_password = config["AppCredentials"]["password"]
-    to_email = config["DEFAULT"]["to_email"]
-    subject = config["DEFAULT"]["subject"]
+if should_notify:
+    from_email = config["Mail"]["email"]
+    from_password = config["Mail"]["password"]
+    to_email = config["Mail"]["to_email"]
+    subject = config["Mail"]["subject"]
 
-    msg = "New IP {} detected.\nOld IP was {}".format(current_ip, previous_ip)
-    message = 'Subject: {}\n\n{}'.format(subject, msg)
+    message = 'Subject: {}\n\n{}'.format(subject, test_messages)
 
     server = smtplib.SMTP('smtp.gmail.com', 587)
     server.starttls()
@@ -41,5 +41,3 @@ if not previous_ip == current_ip:
     server.sendmail(from_email, to_email, message)
     server.quit()
 
-    with open(cache_file, 'w') as f:
-        f.write(current_ip)
