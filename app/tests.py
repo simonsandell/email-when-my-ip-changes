@@ -67,4 +67,6 @@ def test_dns(config):
 
     if current_result != previous_result:
         result.notify = True
+    with open(cache_file, 'w') as f:
+        f.write(current_result)
     return result
